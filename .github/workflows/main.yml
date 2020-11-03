@@ -26,8 +26,6 @@ jobs:
 
       - name: Zowe CLI
         uses: richardnas/zowe-action@v1
-        env: 
-          ZUSER: ${{ secrets.ZOSMF_OPTION_USER }}
         with:
           ZOSMF_OPTION_NAME: ${{ secrets.ZOSMF_OPTION_NAME }}
           ZOSMF_OPTION_HOST: ${{ secrets.ZOSMF_OPTION_HOST }}
@@ -35,9 +33,14 @@ jobs:
           ZOSMF_OPTION_USER: ${{ secrets.ZOSMF_OPTION_USER }}
           ZOSMF_OPTION_PASSWORD: ${{ secrets.ZOSMF_OPTION_PASSWORD }}
           ZOSMF_OPTION_REJECT_UNAUTHORIZED: ${{ secrets.ZOSMF_OPTION_REJECT_UNAUTHORIZED }}
-      - run: |
+
+      - name: Submit JOB
+        env:
+          ZUSER: ${{ secrets.ZOSMF_OPTION_USER }}
+        run: |
           zowe files ul ftds "RESPONSE" "$ZUSER.SOURCE(RESPONSE)" --responseTimeout 60
           zowe files ul ftds "ANSWER_SHEET" "$ZUSER.SOURCE(ANSWERS)" --responseTimeout 60
           zowe files ul ftds "check.cbl" "$ZUSER.SOURCE(CHECKCBL)" --responseTimeout 60
           zowe files ul ftds "check.jcl" "$ZUSER.SOURCE(CHECKJCL)" --responseTimeout 60
           zowe jobs sub ds "$ZUSER.SOURCE(CHECKJCL)" --vasc
+      
