@@ -1,0 +1,43 @@
+name: Main Workflow
+on:
+  push:
+    branches: [ master ]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install nbconvert
+        run: |
+          sudo apt-get install python3-setuptools
+          pip3 install wheel
+          pip3 install nbconvert
+          pip3 install ipykernel
+
+      - name: Install dependencies
+        run: pip3 install pandas scikit-learn xgboost
+
+      - name: Run Notebook
+        run: ~/.local/bin/jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=0 --inplace kepler.ipynb
+
+      - name: Run Model Prediction script
+        run: python3 eval.py
+
+      - name: Zowe CLI
+        uses: richardnas/zowe-action@v1
+        env: 
+          USER: ${{ secrets.ZOSMF_OPTION_USER }}
+        with:
+          ZOSMF_OPTION_NAME: ${{ secrets.ZOSMF_OPTION_NAME }}
+          ZOSMF_OPTION_HOST: ${{ secrets.ZOSMF_OPTION_HOST }}
+          ZOSMF_OPTION_PORT: ${{ secrets.ZOSMF_OPTION_PORT }}
+          ZOSMF_OPTION_USER: ${{ secrets.ZOSMF_OPTION_USER }}
+          ZOSMF_OPTION_PASSWORD: ${{ secrets.ZOSMF_OPTION_PASSWORD }}
+          ZOSMF_OPTION_REJECT_UNAUTHORIZED: ${{ secrets.ZOSMF_OPTION_REJECT_UNAUTHORIZED }}
+      - run: |
+          zowe files ul ftds "RESPONSE" "$USER.SOURCE(RESPONSE)" --responseTimeout 60
+          zowe files ul ftds "ANSWER_SHEET" "$USER.SOURCE(ANSWERS)" --responseTimeout 60
+          zowe files ul ftds "check.cbl" "$USER.SOURCE(CHECKCBL)" --responseTimeout 60
+          zowe files ul ftds "check.jcl" "$USER.SOURCE(CHECKJCL)" --responseTimeout 60
+          zowe jobs sub ds "$USER.SOURCE(CHECKJCL)" --vasc
